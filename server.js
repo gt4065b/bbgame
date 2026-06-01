@@ -87,6 +87,29 @@ Choose 2~4 key words or expressions from your response.`,
 返答から核心単語を2〜4個選んでまとめてください。`
 };
 
+const LEVEL_ADDITIONS = {
+  korean: {
+    advanced:     '\n\n[학습자 수준: 상급 — 토익 800점 이상]\n고급 어휘, 복잡한 문장, 관용어를 자유롭게 사용하세요. 📚 주요 단어는 특히 어려운 표현일 때만 선택적으로 포함하세요.',
+    intermediate: '\n\n[학습자 수준: 중급 — 토익 600점 이상]\n다양한 어휘를 사용하되 너무 어렵지 않게 하세요. 반드시 📚 주요 단어 섹션을 포함하세요.',
+    beginner:     '\n\n[학습자 수준: 하급 — 토익 600점 이하]\n매우 간단한 어휘와 짧은 문장만 사용하세요. 천천히 말하듯 써주세요. 반드시 📚 주요 단어를 포함하고 최대한 쉽게 설명하세요.'
+  },
+  chinese: {
+    advanced:     '\n\n[学习者水平：高级 — TOEIC 800分以上]\n可以自由使用高级词汇、复杂句式和成语。📚 주요 단어部分仅在特别难的表达时才包含。',
+    intermediate: '\n\n[学习者水平：中级 — TOEIC 600分以上]\n使用多样词汇，不要太难。必须包含📚 주요 단어部分。',
+    beginner:     '\n\n[学习者水平：初级 — TOEIC 600分以下]\n只使用非常简单的基础词汇和短句。必须包含📚 주요 단어，尽量简单说明。'
+  },
+  english: {
+    advanced:     '\n\n[Learner level: ADVANCED — TOEIC 800+]\nUse sophisticated vocabulary, complex grammar, idioms freely. Include the 📚 vocabulary section only for particularly challenging expressions.',
+    intermediate: '\n\n[Learner level: INTERMEDIATE — TOEIC 600+]\nUse varied vocabulary at a moderate level. Always include the 📚 vocabulary section.',
+    beginner:     '\n\n[Learner level: BEGINNER — TOEIC below 600]\nUse only simple, basic vocabulary and short sentences. Speak slowly and clearly. Always include the 📚 vocabulary section with very simple explanations.'
+  },
+  japanese: {
+    advanced:     '\n\n[学習者レベル：上級 — TOEIC 800点以上]\n高度な語彙・複雑な文法・慣用句を自由に使用してください。📚 주요 단어セクションは特に難しい表現のみ含めてください。',
+    intermediate: '\n\n[学習者レベル：中級 — TOEIC 600点以上]\n多様な語彙を使い、複雑すぎないように。必ず📚 주요 단어セクションを含めてください。',
+    beginner:     '\n\n[学習者レベル：初級 — TOEIC 600点未満]\n非常に簡単な語彙と短文のみ使用してください。必ず📚 주요 단어セクションを含め、できる限り簡単に説明してください。'
+  }
+};
+
 const GREETINGS = {
   korean: '어서 오세요! 반가워요! 저는 오늘 한국어 대화 연습을 도와줄 파트너예요. 어떤 주제로 이야기하고 싶으세요?',
   chinese: '欢迎！很高兴认识你！我是你今天的中文会话练习伙伴。你想聊什么话题呢？',
@@ -101,7 +124,7 @@ app.get('/api/greeting', (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
-  const { messages, language } = req.body;
+  const { messages, language, level } = req.body;
 
   if (!SYSTEM_PROMPTS[language]) {
     return res.status(400).json({ error: 'Invalid language' });
@@ -109,6 +132,9 @@ app.post('/api/chat', async (req, res) => {
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'OPENAI_API_KEY가 설정되지 않았습니다.' });
   }
+
+  const levelKey = ['advanced', 'intermediate', 'beginner'].includes(level) ? level : 'intermediate';
+  const systemPrompt = SYSTEM_PROMPTS[language] + (LEVEL_ADDITIONS[language]?.[levelKey] || '');
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -118,7 +144,7 @@ app.post('/api/chat', async (req, res) => {
     const stream = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: SYSTEM_PROMPTS[language] },
+        { role: 'system', content: systemPrompt },
         ...messages
       ],
       temperature: 0.7,
