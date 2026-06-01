@@ -1,9 +1,11 @@
-/* ── State ── */
+/* ════════════════════════════════
+   State
+   ════════════════════════════════ */
 const state = {
   username: '',
   language: null,
-  level: null,
-  history: []
+  level:    null,
+  history:  []
 };
 
 const LANG_META = {
@@ -13,52 +15,46 @@ const LANG_META = {
   japanese: { flag: '🇯🇵', label: '日本語', code: 'ja-JP' }
 };
 
-/* ── DOM refs ── */
-const views = {
-  login:    document.getElementById('login-view'),
-  language: document.getElementById('language-view'),
-  chat:     document.getElementById('chat-view')
-};
+/* ════════════════════════════════
+   DOM refs
+   ════════════════════════════════ */
+const views        = { login: document.getElementById('login-view'), language: document.getElementById('language-view'), chat: document.getElementById('chat-view') };
+const loginForm    = document.getElementById('login-form');
+const usernameEl   = document.getElementById('username');
+const passwordEl   = document.getElementById('password');
+const loginError   = document.getElementById('login-error');
+const displayName  = document.getElementById('display-name');
+const logoutBtn    = document.getElementById('logout-btn');
+const langCards    = document.querySelectorAll('.lang-card');
+const levelCards   = document.querySelectorAll('.level-card');
+const startBtn     = document.getElementById('start-btn');
+const backBtn      = document.getElementById('back-btn');
+const chatFlag     = document.getElementById('chat-flag');
+const chatLabel    = document.getElementById('chat-lang-label');
+const messagesEl   = document.getElementById('messages');
+const msgInput     = document.getElementById('msg-input');
+const sendBtn      = document.getElementById('send-btn');
+const micBtn       = document.getElementById('mic-btn');
+const micOnIcon    = document.getElementById('mic-on-icon');
+const micOffIcon   = document.getElementById('mic-off-icon');
+const wakelockBadge = document.getElementById('wakelock-badge');
+const ttsBtn       = document.getElementById('tts-btn');
 
-const loginForm      = document.getElementById('login-form');
-const usernameEl     = document.getElementById('username');
-const passwordEl     = document.getElementById('password');
-const loginError     = document.getElementById('login-error');
-const displayName    = document.getElementById('display-name');
-const logoutBtn      = document.getElementById('logout-btn');
-const langCards      = document.querySelectorAll('.lang-card');
-const levelCards     = document.querySelectorAll('.level-card');
-const startBtn       = document.getElementById('start-btn');
-const backBtn        = document.getElementById('back-btn');
-const chatFlag       = document.getElementById('chat-flag');
-const chatLabel      = document.getElementById('chat-lang-label');
-const messagesEl     = document.getElementById('messages');
-const msgInput       = document.getElementById('msg-input');
-const sendBtn        = document.getElementById('send-btn');
-const micBtn         = document.getElementById('mic-btn');
-const wakelockBadge  = document.getElementById('wakelock-badge');
-const micOnIcon      = document.getElementById('mic-on-icon');
-const micOffIcon     = document.getElementById('mic-off-icon');
-
-/* ── View switching ── */
+/* ════════════════════════════════
+   View switching
+   ════════════════════════════════ */
 function showView(name) {
-  Object.entries(views).forEach(([key, el]) => {
-    el.classList.toggle('active', key === name);
-  });
+  Object.entries(views).forEach(([k, el]) => el.classList.toggle('active', k === name));
 }
 
 /* ════════════════════════════════
    로그인 (고정 계정)
    ════════════════════════════════ */
-const VALID_ID = 'wsu2026';
-const VALID_PW = 'ai2026';
-
 loginForm.addEventListener('submit', e => {
   e.preventDefault();
   const id   = usernameEl.value.trim();
   const pass = passwordEl.value.trim();
-
-  if (id !== VALID_ID || pass !== VALID_PW) {
+  if (id !== 'wsu2026' || pass !== 'ai2026') {
     loginError.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
     loginError.classList.remove('hidden');
     passwordEl.value = '';
@@ -71,7 +67,6 @@ loginForm.addEventListener('submit', e => {
   showView('language');
 });
 
-/* ── 로그아웃 ── */
 logoutBtn.addEventListener('click', () => {
   state.username = '';
   state.language = null;
@@ -82,17 +77,16 @@ logoutBtn.addEventListener('click', () => {
   langCards.forEach(c => c.classList.remove('selected'));
   levelCards.forEach(c => c.classList.remove('selected'));
   startBtn.disabled = true;
-  stopListening();
+  micOff();
   releaseWakeLock();
+  ttsCancel();
   showView('login');
 });
 
 /* ════════════════════════════════
    언어 + 수준 선택
    ════════════════════════════════ */
-function updateStartBtn() {
-  startBtn.disabled = !(state.language && state.level);
-}
+function updateStartBtn() { startBtn.disabled = !(state.language && state.level); }
 
 langCards.forEach(card => {
   card.addEventListener('click', () => {
@@ -122,7 +116,6 @@ startBtn.addEventListener('click', async () => {
   messagesEl.innerHTML  = '';
   state.history = [];
   showView('chat');
-  msgInput.focus();
   initSpeechRecognition();
   await requestWakeLock();
 
@@ -131,15 +124,16 @@ startBtn.addEventListener('click', async () => {
     const { greeting } = await res.json();
     appendMessage('ai', greeting);
     state.history.push({ role: 'assistant', content: greeting });
+    speakTTS(greeting);
   } catch {
-    appendMessage('ai', '안녕하세요! 연결에 문제가 생겼어요. 잠시 후 다시 시도해주세요.');
+    appendMessage('ai', '연결에 문제가 생겼어요. 잠시 후 다시 시도해주세요.');
   }
 });
 
-/* ── 뒤로 ── */
 backBtn.addEventListener('click', () => {
-  stopListening();
+  micOff();
   releaseWakeLock();
+  ttsCancel();
   state.history = [];
   showView('language');
 });
@@ -154,21 +148,15 @@ async function requestWakeLock() {
   try {
     wakeLock = await navigator.wakeLock.request('screen');
     wakelockBadge.classList.remove('hidden');
-    wakeLock.addEventListener('release', () => {
-      wakelockBadge.classList.add('hidden');
-      wakeLock = null;
-    });
-  } catch (err) {
-    console.warn('Wake Lock 획득 실패:', err.message);
-  }
+    wakeLock.addEventListener('release', () => { wakelockBadge.classList.add('hidden'); wakeLock = null; });
+  } catch (e) { console.warn('Wake Lock 실패:', e.message); }
 }
 
 function releaseWakeLock() {
-  if (wakeLock) { wakeLock.release(); }
+  if (wakeLock) wakeLock.release();
   wakelockBadge.classList.add('hidden');
 }
 
-/* 화면이 다시 켜지면 Wake Lock 재획득 */
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && views.chat.classList.contains('active')) {
     await requestWakeLock();
@@ -176,66 +164,121 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 /* ════════════════════════════════
-   음성 입력 (Web Speech API)
+   TTS — AI 응답 음성 출력
    ════════════════════════════════ */
-let recognition = null;
-let isListening = false;
+let ttsEnabled = true;
+
+ttsBtn.addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.textContent = ttsEnabled ? '🔊' : '🔇';
+  ttsBtn.classList.toggle('muted', !ttsEnabled);
+  if (!ttsEnabled) ttsCancel();
+});
+
+function ttsCancel() {
+  if (window.speechSynthesis) speechSynthesis.cancel();
+}
+
+function speakTTS(fullText) {
+  if (!ttsEnabled || !window.speechSynthesis) return;
+
+  const marker = '📚 주요 단어';
+  const idx = fullText.indexOf(marker);
+  const text = (idx !== -1 ? fullText.slice(0, idx) : fullText).trim();
+  if (!text) return;
+
+  speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = LANG_META[state.language]?.code || 'en-US';
+  utter.rate  = 0.88;
+  utter.pitch = 1;
+
+  /* TTS 재생 중엔 마이크 중단, 끝나면 재개 */
+  const wasOn = isListening;
+  if (wasOn) { pausedForTTS = true; try { recognition.stop(); } catch (_) {} }
+
+  utter.onend = utter.onerror = () => {
+    pausedForTTS = false;
+    if (wasOn) micOn();
+  };
+
+  speechSynthesis.speak(utter);
+}
+
+/* ════════════════════════════════
+   마이크 — 연속 음성 인식
+   ════════════════════════════════ */
+let recognition   = null;
+let isListening   = false;
+let pausedForTTS  = false;
+let accFinal      = '';   // 누적 최종 인식 텍스트
+let autoSendTimer = null;
 
 function initSpeechRecognition() {
-  if (recognition) return; // 이미 초기화됨
-
+  if (recognition) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    micBtn.classList.add('unsupported');
-    return;
-  }
+  if (!SR) { micBtn.classList.add('unsupported'); return; }
 
   recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = true;
+  recognition.continuous     = true;   // 계속 듣기
+  recognition.interimResults = true;   // 실시간 텍스트 표시
 
   recognition.onresult = e => {
-    const transcript = Array.from(e.results)
-      .map(r => r[0].transcript)
-      .join('');
-    msgInput.value = transcript;
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        accFinal += e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+
+    msgInput.value = (accFinal + interim).trim();
     autoResizeTextarea();
 
-    if (e.results[e.results.length - 1].isFinal) {
-      isListening = false;
-      updateMicUI();
-      sendMessage();
+    /* 최종 텍스트 확보 시 1초 후 자동 전송 */
+    if (accFinal.trim()) {
+      clearTimeout(autoSendTimer);
+      autoSendTimer = setTimeout(() => {
+        const text = accFinal.trim();
+        accFinal = '';
+        msgInput.value = '';
+        autoResizeTextarea();
+        if (text) sendMessageWithText(text);
+      }, 1000);
     }
   };
 
+  /* 인식 종료 시 TTS 중이 아니면 자동 재시작 */
   recognition.onend = () => {
-    isListening = false;
-    updateMicUI();
+    if (isListening && !pausedForTTS) {
+      setTimeout(() => {
+        if (isListening && !pausedForTTS) {
+          try { recognition.start(); } catch (_) {}
+        }
+      }, 300);
+    }
   };
 
   recognition.onerror = err => {
+    if (err.error === 'no-speech') return; // 묵음은 무시
     console.warn('음성 인식 오류:', err.error);
-    isListening = false;
-    updateMicUI();
   };
 }
 
-function startListening() {
+function micOn() {
   if (!recognition) return;
   recognition.lang = LANG_META[state.language]?.code || 'en-US';
-  try {
-    recognition.start();
-    isListening = true;
-    updateMicUI();
-  } catch (e) {
-    console.warn('recognition.start 오류:', e);
-  }
+  try { recognition.start(); isListening = true; updateMicUI(); } catch (_) {}
 }
 
-function stopListening() {
+function micOff() {
   if (!recognition) return;
-  try { recognition.stop(); } catch (_) {}
   isListening = false;
+  accFinal = '';
+  clearTimeout(autoSendTimer);
+  try { recognition.stop(); } catch (_) {}
   updateMicUI();
 }
 
@@ -243,27 +286,21 @@ function updateMicUI() {
   micBtn.classList.toggle('recording', isListening);
   micOnIcon.style.display  = isListening ? 'none'  : 'block';
   micOffIcon.style.display = isListening ? 'block' : 'none';
-  micBtn.title = isListening
-    ? '음성 인식 중… (클릭하면 중지)'
-    : '마이크를 눌러 말하기';
+  micBtn.title = isListening ? '마이크 켜짐 — 클릭하면 끄기' : '마이크 클릭하여 시작';
 }
 
 micBtn.addEventListener('click', () => {
-  if (isListening) stopListening();
-  else             startListening();
+  if (isListening) micOff();
+  else             micOn();
 });
 
 /* ════════════════════════════════
    메시지 전송
    ════════════════════════════════ */
-async function sendMessage() {
-  const text = msgInput.value.trim();
+async function sendMessageWithText(text) {
   if (!text || sendBtn.disabled) return;
 
-  msgInput.value = '';
-  autoResizeTextarea();
   sendBtn.disabled = true;
-
   appendMessage('user', text);
   state.history.push({ role: 'user', content: text });
 
@@ -272,13 +309,9 @@ async function sendMessage() {
 
   try {
     const response = await fetch('/api/chat', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: state.history,
-        language: state.language,
-        level:    state.level
-      })
+      body:    JSON.stringify({ messages: state.history, language: state.language, level: state.level })
     });
 
     if (!response.ok) {
@@ -291,7 +324,6 @@ async function sendMessage() {
 
     typingEl.remove();
     const { bubbleEl, textEl } = createAIBubble();
-
     const reader  = response.body.getReader();
     const decoder = new TextDecoder();
     let fullText  = '';
@@ -300,25 +332,18 @@ async function sendMessage() {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop();
-
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const payload = line.slice(6);
         if (payload === '[DONE]') break;
-
         try {
           const { delta, error } = JSON.parse(payload);
           if (error) { textEl.textContent = `오류: ${error}`; break; }
-          if (delta) {
-            fullText += delta;
-            textEl.textContent = fullText;
-            scrollToBottom();
-          }
-        } catch { /* 불완전한 청크 무시 */ }
+          if (delta) { fullText += delta; textEl.textContent = fullText; scrollToBottom(); }
+        } catch (_) {}
       }
     }
 
@@ -326,23 +351,34 @@ async function sendMessage() {
       state.history.push({ role: 'assistant', content: fullText });
       renderVocabSection(bubbleEl, fullText);
       scrollToBottom();
+      speakTTS(fullText); // AI 답변 음성 출력 (TTS 끝나면 마이크 재개)
     }
   } catch {
     typingEl?.remove();
     appendMessage('ai', '연결 오류가 발생했습니다. 다시 시도해주세요.');
   } finally {
     sendBtn.disabled = false;
-    msgInput.focus();
+    /* TTS 사용 안 할 경우 즉시 마이크 재개 */
+    if (!ttsEnabled && isListening && pausedForTTS === false) {
+      // 이미 켜져 있음
+    }
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
+/* 텍스트 입력창으로 수동 전송 */
+async function sendManual() {
+  const text = msgInput.value.trim();
+  if (!text) return;
+  accFinal = '';
+  msgInput.value = '';
+  autoResizeTextarea();
+  await sendMessageWithText(text);
+}
+
+sendBtn.addEventListener('click', sendManual);
 
 msgInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendManual(); }
 });
 
 function autoResizeTextarea() {
@@ -357,19 +393,16 @@ msgInput.addEventListener('input', autoResizeTextarea);
 function appendMessage(role, text) {
   const row = document.createElement('div');
   row.className = `msg-row ${role}`;
-
   if (role === 'ai') {
-    const avatar = document.createElement('div');
-    avatar.className = 'msg-avatar';
-    avatar.textContent = LANG_META[state.language]?.flag || '🤖';
-    row.appendChild(avatar);
+    const av = document.createElement('div');
+    av.className = 'msg-avatar';
+    av.textContent = LANG_META[state.language]?.flag || '🤖';
+    row.appendChild(av);
   }
-
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.textContent = text;
   row.appendChild(bubble);
-
   messagesEl.appendChild(row);
   scrollToBottom();
   return row;
@@ -378,17 +411,14 @@ function appendMessage(role, text) {
 function appendTyping() {
   const row = document.createElement('div');
   row.className = 'msg-row ai';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = LANG_META[state.language]?.flag || '🤖';
-  row.appendChild(avatar);
-
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = LANG_META[state.language]?.flag || '🤖';
+  row.appendChild(av);
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
   row.appendChild(bubble);
-
   messagesEl.appendChild(row);
   scrollToBottom();
   return row;
@@ -398,46 +428,34 @@ function createAIBubble() {
   const row = document.createElement('div');
   row.className = 'msg-row ai';
   row.style.animation = 'none';
-
-  const avatar = document.createElement('div');
-  avatar.className = 'msg-avatar';
-  avatar.textContent = LANG_META[state.language]?.flag || '🤖';
-  row.appendChild(avatar);
-
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = LANG_META[state.language]?.flag || '🤖';
+  row.appendChild(av);
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
-
   const textEl = document.createElement('span');
   bubble.appendChild(textEl);
   row.appendChild(bubble);
   messagesEl.appendChild(row);
-
   return { bubbleEl: bubble, textEl };
 }
 
-/* 스트리밍 완료 후 📚 섹션을 분리해 스타일 적용 */
 function renderVocabSection(bubble, fullText) {
   const marker = '📚 주요 단어';
-  const idx = fullText.indexOf(marker);
+  const idx    = fullText.indexOf(marker);
   if (idx === -1) return;
-
   const mainText  = fullText.slice(0, idx).trimEnd();
   const vocabText = fullText.slice(idx);
-
   bubble.innerHTML = '';
-
   const mainEl = document.createElement('p');
-  mainEl.style.whiteSpace = 'pre-wrap';
-  mainEl.style.marginBottom = '12px';
+  mainEl.style.cssText = 'white-space:pre-wrap;margin-bottom:12px';
   mainEl.textContent = mainText;
   bubble.appendChild(mainEl);
-
   const vocabEl = document.createElement('div');
   vocabEl.className = 'vocab-box';
   vocabEl.textContent = vocabText;
   bubble.appendChild(vocabEl);
 }
 
-function scrollToBottom() {
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
+function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }

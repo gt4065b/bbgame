@@ -543,6 +543,18 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 .btn-mic.unsupported { display: none; }
 
+/* ── TTS button ── */
+.btn-tts {
+  font-size: 1.3rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--text2);
+  transition: color 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+.btn-tts:hover  { color: var(--text); }
+.btn-tts.muted  { opacity: 0.35; }
+
 /* ── Vocab box ── */
 .vocab-box {
   margin-top: 2px;
