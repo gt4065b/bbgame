@@ -451,6 +451,19 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .btn-send:hover { opacity: 0.88; transform: scale(1.05); }
 .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+/* ── Vocab box ── */
+.vocab-box {
+  margin-top: 2px;
+  padding: 10px 14px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.8;
+  color: #C4B5FD;
+  white-space: pre-wrap;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .login-card { padding: 36px 24px; }

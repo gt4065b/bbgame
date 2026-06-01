@@ -41,19 +41,25 @@ function showView(name) {
   });
 }
 
-/* ── Login ── */
+/* ── Login (고정 계정) ── */
+const VALID_ID = 'wsu2026';
+const VALID_PW = 'ai2026';
+
 loginForm.addEventListener('submit', e => {
   e.preventDefault();
-  const name = usernameEl.value.trim();
+  const id   = usernameEl.value.trim();
   const pass = passwordEl.value.trim();
 
-  if (!name || !pass) {
+  if (id !== VALID_ID || pass !== VALID_PW) {
+    loginError.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
     loginError.classList.remove('hidden');
+    passwordEl.value = '';
+    passwordEl.focus();
     return;
   }
   loginError.classList.add('hidden');
-  state.username = name;
-  displayName.textContent = name;
+  state.username = id;
+  displayName.textContent = id;
   showView('language');
 });
 
@@ -175,6 +181,8 @@ async function sendMessage() {
 
     if (fullText) {
       state.history.push({ role: 'assistant', content: fullText });
+      renderVocabSection(bubbleEl, fullText);
+      scrollToBottom();
     }
   } catch (err) {
     typingEl?.remove();
@@ -262,6 +270,29 @@ function createAIBubble() {
   messagesEl.appendChild(row);
 
   return { bubbleEl: bubble, textEl };
+}
+
+/* 스트리밍 완료 후 📚 섹션을 분리해 스타일 적용 */
+function renderVocabSection(bubble, fullText) {
+  const marker = '📚 주요 단어';
+  const idx = fullText.indexOf(marker);
+  if (idx === -1) return;
+
+  const mainText  = fullText.slice(0, idx).trimEnd();
+  const vocabText = fullText.slice(idx);
+
+  bubble.innerHTML = '';
+
+  const mainEl = document.createElement('p');
+  mainEl.style.whiteSpace = 'pre-wrap';
+  mainEl.style.marginBottom = '12px';
+  mainEl.textContent = mainText;
+  bubble.appendChild(mainEl);
+
+  const vocabEl = document.createElement('div');
+  vocabEl.className = 'vocab-box';
+  vocabEl.textContent = vocabText;
+  bubble.appendChild(vocabEl);
 }
 
 function scrollToBottom() {
