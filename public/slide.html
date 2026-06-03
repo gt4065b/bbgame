@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>음성 슬라이드 제어</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="slide.css">
+</head>
+<body>
+
+<!-- ── 설정 화면 ── -->
+<div id="setup-view" class="view active">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="logo-icon">🎤</div>
+      <h1>음성 슬라이드 제어</h1>
+      <p class="setup-subtitle">교수자를 위한 핸즈프리 발표 도구</p>
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*" multiple hidden>
+      <div class="upload-inner" id="upload-inner">
+        <div class="upload-icon">📁</div>
+        <p class="upload-title">슬라이드 이미지 업로드</p>
+        <p class="upload-hint">JPG, PNG 파일을 드래그하거나 클릭하세요<br>여러 장 선택 가능</p>
+        <button class="btn-upload" id="upload-btn">파일 선택</button>
+      </div>
+      <div class="upload-preview" id="upload-preview" style="display:none">
+        <p class="preview-count" id="preview-count"></p>
+        <div class="preview-thumbs" id="preview-thumbs"></div>
+        <button class="btn-ghost" id="reset-upload">다시 선택</button>
+      </div>
+    </div>
+
+    <div class="demo-divider"><span>또는</span></div>
+    <button class="btn-demo" id="demo-btn">데모 슬라이드로 시작</button>
+
+    <button class="btn-primary btn-start-present" id="start-present-btn" disabled>
+      발표 시작 →
+    </button>
+
+    <div class="command-preview">
+      <p class="cmd-preview-title">주요 음성 명령어</p>
+      <div class="cmd-grid">
+        <span class="cmd-chip">"슬라이드 다음"</span>
+        <span class="cmd-chip">"슬라이드 이전"</span>
+        <span class="cmd-chip">"슬라이드 5번"</span>
+        <span class="cmd-chip">"슬라이드 처음"</span>
+        <span class="cmd-chip">"슬라이드 마지막"</span>
+        <span class="cmd-chip">"화면 끄기"</span>
+        <span class="cmd-chip">"화면 켜기"</span>
+        <span class="cmd-chip">"강조"</span>
+        <span class="cmd-chip">"확대"</span>
+        <span class="cmd-chip">"축소"</span>
+        <span class="cmd-chip">"포인터 켜기"</span>
+        <span class="cmd-chip">"종료"</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 발표 화면 ── -->
+<div id="present-view" class="view">
+
+  <!-- 상단 HUD -->
+  <div id="hud" class="hud">
+    <div class="hud-left">
+      <button id="exit-btn" class="hud-btn" title="종료">✕</button>
+      <span id="slide-counter" class="slide-counter">1 / 1</span>
+    </div>
+    <div class="hud-center">
+      <div id="voice-status" class="voice-status idle">
+        <div class="mic-ring"></div>
+        <span class="mic-icon">🎤</span>
+        <span id="voice-label" class="voice-label">음성 대기 중</span>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div id="cmd-toast" class="cmd-toast hidden"></div>
+      <button id="pointer-toggle" class="hud-btn" title="포인터">⊙</button>
+    </div>
+  </div>
+
+  <!-- 슬라이드 영역 -->
+  <div id="slide-stage" class="slide-stage">
+    <div id="slide-zoom-wrap" class="slide-zoom-wrap">
+      <div id="slide-container" class="slide-container">
+        <!-- 슬라이드 내용 동적 삽입 -->
+      </div>
+    </div>
+
+    <!-- 블랙아웃 오버레이 -->
+    <div id="blackout" class="blackout hidden"></div>
+
+    <!-- 강조 오버레이 -->
+    <div id="highlight-overlay" class="highlight-overlay hidden"></div>
+
+    <!-- 레이저 포인터 -->
+    <div id="laser" class="laser hidden"></div>
+  </div>
+
+  <!-- 하단 썸네일 바 -->
+  <div id="thumb-bar" class="thumb-bar">
+    <div id="thumb-list" class="thumb-list"></div>
+  </div>
+
+  <!-- 인식 텍스트 표시 -->
+  <div id="transcript-bar" class="transcript-bar">
+    <span id="transcript-text"></span>
+  </div>
+</div>
+
+<script src="slide.js"></script>
+</body>
+</html>

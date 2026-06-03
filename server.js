@@ -167,5 +167,12 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+app.get('/slide', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'slide.html'));
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Language Practice App → http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Language Practice App → http://localhost:${PORT}`);
+  console.log(`Voice Slide Control   → http://localhost:${PORT}/slide`);
+});
