@@ -18,7 +18,7 @@ const LANG_META = {
 /* ════════════════════════════════
    DOM refs
    ════════════════════════════════ */
-const views        = { login: document.getElementById('login-view'), language: document.getElementById('language-view'), chat: document.getElementById('chat-view') };
+const views        = { login: document.getElementById('login-view'), language: document.getElementById('language-view'), chat: document.getElementById('chat-view'), learn: document.getElementById('learning-view') };
 const loginForm    = document.getElementById('login-form');
 const usernameEl   = document.getElementById('username');
 const passwordEl   = document.getElementById('password');
@@ -459,3 +459,97 @@ function renderVocabSection(bubble, fullText) {
 }
 
 function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+/* ════════════════════════════════
+   학습 자료 (일본어 LEVEL 2)
+   ════════════════════════════════ */
+const learnBtn     = document.getElementById('learn-btn');
+const learnBackBtn = document.getElementById('learn-back-btn');
+const learnBody    = document.getElementById('learn-body');
+const learnBadge   = document.getElementById('learn-progress-badge');
+const LEARN_KEY    = 'learn_lv2';
+
+function getChecked() {
+  try { return new Set(JSON.parse(localStorage.getItem(LEARN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+
+function saveChecked(set) {
+  try { localStorage.setItem(LEARN_KEY, JSON.stringify([...set])); } catch {}
+}
+
+function renderLearningView(reopenDay) {
+  const checked = getChecked();
+  const total   = LEVEL2.stats.expr;
+  learnBadge.textContent = `${checked.size}/${total}`;
+  learnBody.innerHTML = '';
+
+  const pct = total > 0 ? Math.round(checked.size / total * 100) : 0;
+  const progWrap = document.createElement('div');
+  progWrap.className = 'learn-progress-bar-wrap';
+  progWrap.innerHTML = `
+    <div class="learn-progress-label"><span>전체 진도</span><span>${checked.size}/${total} (${pct}%)</span></div>
+    <div class="learn-progress-bar"><div class="learn-progress-fill" style="width:${pct}%"></div></div>`;
+  learnBody.appendChild(progWrap);
+
+  let currentPart = -1;
+  LEVEL2.groups.forEach(group => {
+    if (group.partIdx !== currentPart) {
+      currentPart = group.partIdx;
+      const pt = document.createElement('div');
+      pt.className = 'learn-part-title';
+      pt.textContent = LEVEL2.parts[currentPart];
+      learnBody.appendChild(pt);
+    }
+
+    const doneCount = group.items.filter(it => checked.has(it.n)).length;
+    const card = document.createElement('div');
+    card.className = 'learn-group-card' + (doneCount > 0 ? ' has-progress' : '');
+    if (reopenDay === group.day) card.classList.add('open');
+
+    card.innerHTML = `
+      <div class="learn-group-header">
+        <span class="learn-day-badge">Day ${group.day}</span>
+        <div class="learn-group-info">
+          <div class="learn-group-title">${group.title}</div>
+          <div class="learn-group-goal">${group.goal}</div>
+        </div>
+        <span class="learn-group-count">${doneCount}/${group.items.length}</span>
+        <span class="learn-group-toggle">▼</span>
+      </div>
+      <div class="learn-items"></div>`;
+
+    const itemsEl = card.querySelector('.learn-items');
+    group.items.forEach(item => {
+      const done = checked.has(item.n);
+      const row = document.createElement('div');
+      row.className = 'learn-item' + (done ? ' done' : '');
+      row.innerHTML = `
+        <div class="learn-item-check${done ? ' checked' : ''}" data-n="${item.n}"></div>
+        <div class="learn-item-body">
+          <div class="learn-item-num">#${item.n}</div>
+          <div class="learn-item-word">
+            <span class="learn-item-jp">${item.jp}</span>
+            <span class="learn-item-rd">[${item.rd}]</span>
+            <span class="learn-item-ko">${item.ko}</span>
+          </div>
+          <div class="learn-item-ex"><span>${item.ex_jp}</span><span>${item.ex_ko}</span></div>
+        </div>`;
+      row.querySelector('.learn-item-check').addEventListener('click', () => {
+        const s = getChecked();
+        if (s.has(item.n)) s.delete(item.n); else s.add(item.n);
+        saveChecked(s);
+        renderLearningView(group.day);
+      });
+      itemsEl.appendChild(row);
+    });
+
+    card.querySelector('.learn-group-header').addEventListener('click', () => {
+      card.classList.toggle('open');
+    });
+    learnBody.appendChild(card);
+  });
+}
+
+learnBtn.addEventListener('click', () => { renderLearningView(); showView('learn'); });
+learnBackBtn.addEventListener('click', () => showView('language'));

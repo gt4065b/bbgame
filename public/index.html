@@ -40,6 +40,7 @@
     <div class="user-greeting">
       안녕하세요, <span id="display-name">사용자</span>님! 👋
     </div>
+    <button id="learn-btn" class="btn-ghost">📖 학습 자료</button>
     <button id="logout-btn" class="btn-ghost">로그아웃</button>
   </header>
 
@@ -141,6 +142,20 @@
   </div>
 </div>
 
+<!-- ── 학습 자료 화면 ── -->
+<div id="learning-view" class="view">
+  <header class="learn-header">
+    <button id="learn-back-btn" class="btn-ghost btn-icon" aria-label="뒤로">←</button>
+    <div class="learn-header-info">
+      <span class="learn-title-text">📖 일본어 LEVEL 2</span>
+      <span class="learn-subtitle-text">초급 핵심 표현 76~150</span>
+    </div>
+    <div class="learn-progress-badge" id="learn-progress-badge">0/75</div>
+  </header>
+  <div class="learn-body" id="learn-body"></div>
+</div>
+
+<script src="curriculum.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
